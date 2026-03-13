@@ -1,48 +1,56 @@
 /**
- * 脚本功能：动态消消乐分数修改 (Quantumult X)
- * 逻辑：自动获取分数 -> 转为 "分数" -> Base64 -> 拼接固定后缀
+ * 脚本功能：动态消消乐分数修改 (修复版)
+ * 报错处理：针对 "Resource parse result is invalid" 优化
  */
 
 let url = $request.url;
 let body = $request.body;
 
-// 固定后缀
+// 自定义 Base64 编码函数，防止 QX 环境不支持 btoa
+function safeBase64(str) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let out = '';
+    for (let i = 0, len = str.length; i < len; i += 3) {
+        let a = str.charCodeAt(i), b = str.charCodeAt(i + 1), c = str.charCodeAt(i + 2);
+        out += chars.charAt(a >> 2);
+        out += chars.charAt(((a & 3) << 4) | (b >> 4));
+        out += chars.charAt(isNaN(b) ? 64 : ((b & 15) << 2) | (c >> 6));
+        out += chars.charAt(isNaN(c) ? 64 : c & 63);
+    }
+    return out;
+}
+
 const fixedSuffix = "I3NidzN2Vme2Y6YweWO8IDMmRWY5MTO";
 
-// 1. 尝试从 URL 中动态提取分数
-let currentScore = "0";
-let scoreMatch = url.match(/gameScore=(\d+)/);
-if (scoreMatch) {
-    currentScore = scoreMatch[1];
-}
-
-// 2. 修改请求体
-if (body) {
-    try {
+try {
+    if (body) {
         let obj = JSON.parse(body);
-
-        obj.gameScore = 9226;
-        // 如果想保持原样只修复加密，则直接读取 obj 里的分数
-        if (obj.gameId) {
-            let scoreToProcess = obj.gameScore || currentScore;
-            
-            // 核心逻辑：将分数转为带双引号的字符串，例如 9300 -> "9300"
-            let strWithQuotes = '"' + scoreToProcess + '"';
-            
-            // 进行 Base64 编码
-            // btoa 是 JS 原生支持的 Base64 转换函数
-            let encodedScore = btoa(strWithQuotes);
-            
-            // 重新拼接成新的 achieve 字段
-            obj['achieve'] = encodedScore + fixedSuffix;
-            
-            console.log("成功处理分数: " + scoreToProcess + " -> 加密串: " + obj['achieve']);
+        
+        // 1. 设置你想要的分数
+        let targetScore = "9000"; 
+        
+        // 2. 修改 Body 里的 gameScore
+        if (obj.hasOwnProperty('gameScore')) {
+            obj['gameScore'] = parseInt(targetScore);
         }
 
+        // 3. 构造 achieve: Base64('"9000"') + 后缀
+        let scoreWithQuotes = '"' + targetScore + '"';
+        let encodedScore = safeBase64(scoreWithQuotes);
+        obj['achieve'] = encodedScore + fixedSuffix;
+
         body = JSON.stringify(obj);
-    } catch (e) {
-        console.log("解析或编码失败: " + e);
+        console.log("修改成功: Score=" + targetScore);
     }
+
+    // 4. 修改 URL 里的分数参数
+    if (url.indexOf("gameScore=") !== -1) {
+        url = url.replace(/gameScore=\d+/g, "gameScore=9000");
+    }
+
+} catch (e) {
+    console.log("脚本执行出错: " + e);
 }
 
+// 关键：QX 的 $done 必须返回一个对象，且属性名要准确
 $done({ url: url, body: body });
