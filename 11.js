@@ -42,7 +42,7 @@ try {
         let scoreWithQuotes = '"' + TARGET_SCORE + '"'; 
         
         // 编码后的字符串拼接固定后缀
-        obj['achieve'] = base64Encode(scoreWithQuotes) + FIXED_SUFFIX;
+        obj['achieve'] = btoa(scoreWithQuotes) + FIXED_SUFFIX;
         
         // 数值字段也改掉
         if (obj.hasOwnProperty('gameScore')) obj['gameScore'] = parseInt(TARGET_SCORE);
