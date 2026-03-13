@@ -44,5 +44,6 @@ $done({ url: url, body: body });
 
 // Base64 编码函数
 function base64Encode(str) {
-    return Buffer.from(str).toString('base64'); // 使用 Node.js 的 Buffer 来进行 Base64 编码
+    // Base64 编码
+    return btoa(str); // 在 QX 环境中使用 btoa() 来进行 Base64 编码
 }
