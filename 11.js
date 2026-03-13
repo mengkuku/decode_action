@@ -7,51 +7,72 @@
 [mitm]
 hostname = *.hdpyqe.com
 
-// 自定义 Base64 函数 (QX 专用)
+/**
+ * 脚本功能：消消乐分数修改 (Quantumult X)
+ * 逻辑：修改 URL 参数 gameScore，并重写请求体中的 achieve 字段
+ */
+
 function base64Encode(str) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     let out = '';
-    for (let i = 0, len = str.length; i < len; i += 3) {
-        let a = str.charCodeAt(i), b = str.charCodeAt(i + 1), c = str.charCodeAt(i + 2);
+
+    for (let i = 0; i < str.length; i += 3) {
+        let a = str.charCodeAt(i);
+        let b = str.charCodeAt(i + 1);
+        let c = str.charCodeAt(i + 2);
+
         out += chars.charAt(a >> 2);
-        out += chars.charAt(((a & 3) << 4) | (b >> 4));
-        out += chars.charAt(isNaN(b) ? 64 : ((b & 15) << 2) | (c >> 6));
-        out += chars.charAt(isNaN(c) ? 64 : c & 63);
+        out += chars.charAt(((a & 3) << 4) | ((b || 0) >> 4));
+
+        if (isNaN(b)) {
+            out += '==';
+            break;
+        }
+
+        out += chars.charAt(((b & 15) << 2) | ((c || 0) >> 6));
+
+        if (isNaN(c)) {
+            out += '=';
+            break;
+        }
+
+        out += chars.charAt(c & 63);
     }
+
     return out;
 }
 
-const TARGET_SCORE = "9776"; 
+const TARGET_SCORE = "9776";
 const FIXED_SUFFIX = "I3NidzN2Vme2Y6YweWO8IDMmRWY5MTO";
 
 let url = $request.url;
 let body = $request.body;
 
 try {
-    // 1. 修改 URL 里的分数
-    if (url.indexOf("gameScore=") !== -1) {
+    // 1. 修改 URL 中的 gameScore
+    if (url.includes("gameScore=")) {
         url = url.replace(/gameScore=\d+/g, "gameScore=" + TARGET_SCORE);
     }
 
-    // 2. 修改 Body 里的分数和加密串
+    // 2. 修改请求体
     if (body) {
         let obj = JSON.parse(body);
 
-        // 核心修改逻辑：拼双引号再编码
-        // 如果 targetScore 是 9000，这里 scoreWithQuotes 就是 "9000"
-        let scoreWithQuotes = '"' + TARGET_SCORE + '"'; 
-        
-        // 编码后的字符串拼接固定后缀
-        obj['achieve'] = btoa(scoreWithQuotes) + FIXED_SUFFIX;
-        
-        // 数值字段也改掉
-        if (obj.hasOwnProperty('gameScore')) obj['gameScore'] = parseInt(TARGET_SCORE);
+        // achieve = Base64("9776")，这里是带双引号的字符串
+        let scoreWithQuotes = '"' + TARGET_SCORE + '"';
+        obj.achieve = base64Encode(scoreWithQuotes) + FIXED_SUFFIX;
+
+        // 同步修改 body 中的 gameScore
+        if (Object.prototype.hasOwnProperty.call(obj, "gameScore")) {
+            obj.gameScore = parseInt(TARGET_SCORE, 10);
+        }
 
         body = JSON.stringify(obj);
-        console.log("✅ 成功! achieve: " + obj['achieve']);
+        console.log("achieve => " + obj.achieve);
+        console.log("body => " + body);
     }
 } catch (e) {
-    console.log("❌ 脚本错误: " + e);
+    console.log("script error => " + e);
 }
 
-$done({ url: url, body: body });
+$done({ url, body });
