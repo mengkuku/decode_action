@@ -2,6 +2,10 @@
  * 脚本功能：消消乐分数修改 (Quantumult X)
  * 逻辑：修改 URL 参数 gameScore，并重写请求体中的 achieve 字段（Base64 固定）
  */
+[rewrite_local]
+^https?:\/\/.*\.hdpyqe\.com\/api\/playerJoinGame\/achieve url script-request-body elsb_mod.js
+[mitm]
+hostname = *.hdpyqe.com
 
 let url = $request.url;
 let body = $request.body;
