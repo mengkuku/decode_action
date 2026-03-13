@@ -7,47 +7,51 @@
 [mitm]
 hostname = *.hdpyqe.com
 
+// 自定义 Base64 函数 (QX 专用)
+function base64Encode(str) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let out = '';
+    for (let i = 0, len = str.length; i < len; i += 3) {
+        let a = str.charCodeAt(i), b = str.charCodeAt(i + 1), c = str.charCodeAt(i + 2);
+        out += chars.charAt(a >> 2);
+        out += chars.charAt(((a & 3) << 4) | (b >> 4));
+        out += chars.charAt(isNaN(b) ? 64 : ((b & 15) << 2) | (c >> 6));
+        out += chars.charAt(isNaN(c) ? 64 : c & 63);
+    }
+    return out;
+}
+
+const TARGET_SCORE = "9000"; 
+const FIXED_SUFFIX = "I3NidzN2Vme2Y6YweWO8IDMmRWY5MTO";
+
 let url = $request.url;
 let body = $request.body;
 
-// 1. 修改 URL 中的 gameScore 参数
-if (url.indexOf("gameScore=") != -1) {
-    // 这里修改为你希望设置的游戏分数（例如 9000），或者你可以动态获取游戏分数
-    url = url.replace(/gameScore=\d+/g, "gameScore=9000");
-}
+try {
+    // 1. 修改 URL 里的分数
+    if (url.indexOf("gameScore=") !== -1) {
+        url = url.replace(/gameScore=\d+/g, "gameScore=" + TARGET_SCORE);
+    }
 
-// 2. 修改请求体 (Body) 中的参数
-if (body) {
-    try {
+    // 2. 修改 Body 里的分数和加密串
+    if (body) {
         let obj = JSON.parse(body);
-        
-        // 固定的 Base64 编码后缀
-        const fixedSuffix = "I3NidzN2Vme2Y6YweWO8IDMmRWY5MTO";
-        // 游戏分数动态获取，假设你通过请求中的字段获取游戏分数
-        const gameScore = obj.gameScore || 9000; // 如果没有 gameScore 字段，则默认 9000
-        const newScoreBase64 = base64Encode(gameScore.toString()); // 将分数转换为 Base64 编码
-        
-        // 修改 achieve 字段
-        if (obj.hasOwnProperty('achieve')) {
-            obj['achieve'] = newScoreBase64 + fixedSuffix;
-        }
 
-        // 如果 Body 里也有 gameScore 字段，一并修改
-        if (obj.hasOwnProperty('gameScore')) {
-            obj['gameScore'] = gameScore;
-        }
+        // 核心修改逻辑：拼双引号再编码
+        // 如果 targetScore 是 9000，这里 scoreWithQuotes 就是 "9000"
+        let scoreWithQuotes = '"' + TARGET_SCORE + '"'; 
+        
+        // 编码后的字符串拼接固定后缀
+        obj['achieve'] = base64Encode(scoreWithQuotes) + FIXED_SUFFIX;
+        
+        // 数值字段也改掉
+        if (obj.hasOwnProperty('gameScore')) obj['gameScore'] = parseInt(TARGET_SCORE);
 
         body = JSON.stringify(obj);
-    } catch (e) {
-        console.log("解析请求体失败: " + e);
+        console.log("✅ 成功! achieve: " + obj['achieve']);
     }
+} catch (e) {
+    console.log("❌ 脚本错误: " + e);
 }
 
-// 3. 结果返回
 $done({ url: url, body: body });
-
-// Base64 编码函数
-function base64Encode(str) {
-    // Base64 编码
-    return btoa(str); // 在 QX 环境中使用 btoa() 来进行 Base64 编码
-}
