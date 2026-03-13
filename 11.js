@@ -3,7 +3,7 @@
  * 逻辑：修改 URL 参数 gameScore，并重写请求体中的 achieve 字段（Base64 固定）0
  */
 [rewrite_local]
-^https?:\/\/.*\.hdpyqe\.com\/api\/playerJoinGame\/achieve url script-request-body https://ghfast.top/https://raw.githubusercontent.com/mengkuku/decode_action/refs/heads/main/11.js
+^https?:\/\/.*\.hdpyqe\.com\/api\/playerJoinGame\/achieve url script-request-body https://raw.githubusercontent.com/mengkuku/decode_action/refs/heads/main/11.js
 [mitm]
 hostname = *.hdpyqe.com
 
