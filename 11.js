@@ -42,8 +42,8 @@ function base64Encode(str) {
     return out;
 }
 
-const TARGET_SCORE = "4732";
-const FIXED_SUFFIX = "I3NidzN2Vme2Y6YweWO8IDMmRWY5MTO";
+const TARGET_SCORE = "8732";
+const FIXED_SUFFIX = "bWNeRT8jV6Yw6jNclj5hZ5OjZTZ2cjY";
 
 let url = $request.url;
 let body = $request.body;
